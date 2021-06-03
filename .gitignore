@@ -2,6 +2,7 @@
 data/
 wandb/
 weights/
+hypertuners/
 .ipynb_checkpoints/
 
 # Byte-compiled / optimized / DLL files
