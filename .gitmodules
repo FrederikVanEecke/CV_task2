@@ -1,0 +1,3 @@
+[submodule "deeplab"]
+	path = deeplab
+	url = https://github.com/duraes-antonio/Keras-segmentation-deeplab-v3.git
