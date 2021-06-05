@@ -2,7 +2,6 @@
 data/
 dataset/
 wandb/
-weights/
 hypertuners/
 .ipynb_checkpoints/
 
