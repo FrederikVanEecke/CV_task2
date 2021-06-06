@@ -35,8 +35,8 @@ class Dataset_Classification(object):
 		"""
 			Performs necessary thingss
 		"""
-		self.train_data_path = 'data/train/img'
-		self.test_data_path = 'data/test/img'
+		self.train_data_path = '../input/kul-h02a5a-computervision-groupassignment1/train/img'
+		self.test_data_path = '../input/kul-h02a5a-computervision-groupassignment1/test/img'
 		
 		# count nbr of files within data set. 
 		self.nbr_of_train_images = len(os.listdir(self.train_data_path))
@@ -87,7 +87,7 @@ class Dataset_Classification(object):
 			Get the classification labels 
 		"""
 		# label names 
-		train_df = pd.read_csv('data/train/train_set.csv', index_col="Id")
+		train_df = pd.read_csv('../input/kul-h02a5a-computervision-groupassignment1/train/train_set.csv', index_col="Id")
 		self.label_names = train_df.columns.to_numpy()
 		
 		# get rid of pandas frame 
@@ -168,10 +168,10 @@ class Dataset_Classification(object):
 		# get image 
 		if option=='train':
 			# get image 
-			real_image = np.load('data/train/img/train_{}.npy'.format(image_id) )
+			real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/img/train_{}.npy'.format(image_id) )
 			label = self.class_name_per_image[image_id]
 		else: 
-			real_image = np.load('data/test/img/test_{}.npy'.format(image_id) )
+			real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/test/img/test_{}.npy'.format(image_id) )
 			label = 'unknown'
 			
 		image=np.copy(real_image)
@@ -207,7 +207,7 @@ class Dataset_Classification(object):
 		
 	def view_possible_augmentations(self, image_id): 
 		fig, axes = plt.subplots(4,4, figsize=(60,30))
-		real_image = np.load('data/train/img/train_{}.npy'.format(image_id) )
+		real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/img/train_{}.npy'.format(image_id) )
 		plt.suptitle('original image is on the top left', fontsize=50)
 		for ax in axes.flat: 
 			ax.imshow(self.augment(image=real_image)["image"])
@@ -228,7 +228,7 @@ class Dataset_Classification(object):
 #             for image_id in self.train_indices:
 			image_id = np.random.choice(self.train_indices, p=self.train_sample_probs)
 			# sample real image
-			real_image = np.load('data/train/img/train_{}.npy'.format(image_id) )
+			real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/img/train_{}.npy'.format(image_id) )
 
 			image = self.prepare_image(np.copy(real_image))
 			inputs.append(image)
@@ -260,7 +260,7 @@ class Dataset_Classification(object):
 			#for image_id in self.validation_indices:
 			# sample real image
 			image_id = np.random.choice(self.validation_indices,p=self.validation_sample_probs)
-			real_image = np.load('data/train/img/train_{}.npy'.format(image_id) )
+			real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/img/train_{}.npy'.format(image_id) )
 
 			image = self.prepare_test_image(np.copy(real_image))
 
@@ -285,7 +285,7 @@ class Dataset_Classification(object):
 		inputs = []
 		img_id = 0
 		while img_id < self.nbr_of_test_images:
-			raw_image = np.load('data/test/img/test_{}.npy'.format(img_id))
+			raw_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/test/img/test_{}.npy'.format(img_id))
 			image = self.prepare_test_image(np.copy(raw_image))
 			inputs.append(image)
 			img_id += 1
@@ -381,12 +381,12 @@ class Dataset_Segmentation(Dataset_Classification):
 		# get image 
 		if option=='train':
 			# get image 
-			real_image = np.load('data/train/img/train_{}.npy'.format(image_id) )
-			mask = np.load('data/train/seg/train_{}.npy'.format(image_id))
+			real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/img/train_{}.npy'.format(image_id) )
+			mask = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/seg/train_{}.npy'.format(image_id))
 			label_name=self.class_name_per_image[image_id]
 		else: 
-			real_image = np.load('data/test/img/test_{}.npy'.format(image_id) )
-			mask = np.load('data/test/seg/test_{}.npy'.format(image_id))
+			real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/test/img/test_{}.npy'.format(image_id) )
+			mask = np.load('../input/kul-h02a5a-computervision-groupassignment1/test/seg/test_{}.npy'.format(image_id))
 			label_name='Not labelled'
 		image=np.copy(real_image)
 		
@@ -424,8 +424,8 @@ class Dataset_Segmentation(Dataset_Classification):
 		
 	def view_possible_augmentations(self, image_id): 
 		fig, axes = plt.subplots(4,4, figsize=(60,30))
-		real_image = np.load('data/train/img/train_{}.npy'.format(image_id) )
-		mask = np.load('data/train/seg/train_{}.npy'.format(image_id))
+		real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/img/train_{}.npy'.format(image_id) )
+		mask = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/seg/train_{}.npy'.format(image_id))
 			
 		plt.suptitle('original image is on the bottom right', fontsize=50)
 		for ax in axes.flat: 
@@ -444,8 +444,8 @@ class Dataset_Segmentation(Dataset_Classification):
 		batchcount = 0
 		while True: 
 			for image_id in self.train_indices: 
-				real_image = np.load('data/train/img/train_{}.npy'.format(image_id))
-				mask = np.load('data/train/seg/train_{}.npy'.format(image_id))
+				real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/img/train_{}.npy'.format(image_id))
+				mask = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/seg/train_{}.npy'.format(image_id))
 				image, segmask = self.prepare_image(real_image, mask)
 				inputs.append(image)
 				yy = segmask.flatten()
@@ -473,8 +473,8 @@ class Dataset_Segmentation(Dataset_Classification):
 		while True:
 			for image_id in self.validation_indices:
 				# sample real image
-				real_image = np.load('data/train/img/train_{}.npy'.format(image_id))
-				mask = np.load('data/train/seg/train_{}.npy'.format(image_id) )
+				real_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/img/train_{}.npy'.format(image_id))
+				mask = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/seg/train_{}.npy'.format(image_id) )
 				image, segmask = self.prepare_test_image(real_image, mask)
 				inputs.append(image)
 				yy = segmask.flatten()
@@ -500,7 +500,7 @@ class Dataset_Segmentation(Dataset_Classification):
 		inputs = []
 		img_id = 0
 		while img_id < self.nbr_of_test_images:
-			raw_image = np.load('data/test/img/test_{}.npy'.format(img_id))
+			raw_image = np.load('../input/kul-h02a5a-computervision-groupassignment1/test/img/test_{}.npy'.format(img_id))
 			image,_ = self.prepare_test_image(np.copy(raw_image), np.zeros(raw_image.shape))
 			inputs.append(image)
 			img_id += 1
