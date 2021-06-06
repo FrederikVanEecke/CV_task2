@@ -249,7 +249,7 @@ class ClassifactionModel(RandomClassificationModel):
 	
 	def show_heatmap_prediction(self, image_id):
 		LAYER_NAME=self.heatmap_layer_name
-		im = np.load('data/test/img/test_{}.npy'.format(image_id))
+		im = np.load('../input/kul-h02a5a-computervision-groupassignment1/test/img/test_{}.npy'.format(image_id))
 		pre_im = self.dataset.prepare_test_image(im)
 		batch = np.expand_dims(pre_im, axis=0)
 	
