@@ -296,3 +296,220 @@ class ClassifactionModel(RandomClassificationModel):
 		axes[0].imshow(im)
 		axes[0].set_title('prediction: {}, score: {}'.format(label, np.round(100*score,2)), fontsize=25)
 		plt.show()
+
+class ResNetClassifactionModel(RandomClassificationModel): 
+    def __init__(self, config): 
+        self.config = config 
+        self.config_head = config['head_model']
+        self.project_name = 'resnet_50'
+        
+        # initialize dataset
+        self.dataset = Dataset_Classification(config['dataset'])
+        
+        # feed preprocessor to dataset
+        print('Feeding resnet50 preprocess function to dataset class')
+        self.dataset.feed_preprocess_function(tf.keras.applications.resnet_v2.preprocess_input)
+        
+        # check if some configurations make sense 
+        assert len(self.config_head['head_model_units']) == len(self.config_head['add_dropout']), 'head_models_units and add_dropout list should have same size'
+    
+    
+    def set_config(self, config):
+        self.config = config 
+        self.config_head = config['head_model']
+        self.dataset = Dataset_Classification(config['dataset'])
+        assert len(self.config_head['head_model_units']) == len(self.config_head['add_dropout']), 'head_models_units and add_dropout list should have same size'
+        
+    def predict(self, X):
+        # 
+        
+        if len(X.shape) == 1: 
+            # X is a batch of images prepare all of them and create batch. 
+            batch = np.array([self.dataset.prepare_test_image(im) for im in X])
+            print(batch.shape)
+            
+            y = model.predict(batch)
+        else: 
+            # X is a single image 
+            batch = self.dataset.prepare_test_image(X)
+            batch = np.expand_dims(batch, axis=0)
+            print(batch.shape)
+            y = model.predict(batch)
+            
+        y = np.squeeze(y)
+        print(y)
+        print(self.dataset.label_names)
+        label_idx = np.where(y==1.)
+        print(label_idx)
+        return self.dataset.label_names[label_idx]
+            
+            
+        
+        
+        
+        
+    def build(self): 
+        """
+            Builds the model 
+        """
+        # define a resnet50 base model
+        resnet50 = tf.keras.applications.ResNet50V2(
+                    include_top=False,
+                    weights=self.config['weights'],
+                    input_shape=self.config['input_shape'],
+                        )
+        resnet50.trainable = False
+        self.base_model = resnet50
+        
+        # define a head model
+        head_model=resnet50.output
+        head_model=tf.keras.layers.AveragePooling2D(pool_size=(5,5))(head_model)
+        head_model=tf.keras.layers.Flatten()(head_model)
+        
+        for (nbr_units, dropout) in zip(self.config_head['head_model_units'], self.config_head['add_dropout']): 
+            head_model=tf.keras.layers.Dense(nbr_units, activation=self.config_head['activation'])(head_model)
+            if dropout:
+                head_model=tf.keras.layers.Dropout(0.4)(head_model)
+        
+        head_model=tf.keras.layers.Dense(self.config['nbr_classes'], activation='sigmoid')(head_model)
+        
+        self.head_model = head_model
+                
+            
+        # combine both models 
+        self.model = tf.keras.Model(self.base_model.input, self.head_model)
+        
+    def weighted_categorical_crossentropy(self,weights):
+        """
+        A weighted version of keras.objectives.categorical_crossentropy
+
+        Variables:
+            weights: numpy array of shape (C,) where C is the number of classes
+
+        Usage:
+            weights = np.array([0.5,2,10]) # Class one at 0.5, class 2 twice the normal weights, class 3 10x.
+            loss = weighted_categorical_crossentropy(weights)
+            model.compile(loss=loss,optimizer='adam')
+        """
+
+        weights = K.variable(weights)
+
+        def loss(y_true, y_pred):
+            # scale predictions so that the class probas of each sample sum to 1
+            y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
+            # clip to prevent NaN's and Inf's
+            y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
+            # calc
+            loss = y_true * K.log(y_pred) * weights
+            loss = -K.sum(loss, -1)
+            return loss
+
+        return loss
+        
+    def compile_model(self): 
+        # optimizer
+#         optimizer = tf.keras.optimizers.Adam(
+#                                 learning_rate=self.config['train_parameters']['learning_rate'],
+#                                 beta_1=0.9,
+#                                 beta_2=0.999,
+#                                 epsilon=1e-07,
+#                                 amsgrad=False,
+#                                 name="Adam",
+#                             )
+        optimizer = tf.keras.optimizers.SGD(
+                learning_rate=self.config['train_parameters']['learning_rate'], momentum=0.9,
+                nesterov=False, name="SGD"
+            )
+
+        # metric
+        metrics = [tf.keras.metrics.CategoricalAccuracy(),
+                  tf.keras.metrics.TopKCategoricalAccuracy(k=3, name='top 3 categorical acccuracy'), 
+                  tf.keras.metrics.TopKCategoricalAccuracy(k=5, name='top 5 categorical acccuracy')
+                  ]
+    
+    
+
+#         loss = tf.keras.losses.CategoricalCrossentropy(
+#                 from_logits=True,
+#                 label_smoothing=0,
+#                 reduction="auto",
+#                 name="categorical_crossentropy_loss",
+#              )
+        #loss='sparse_categorical_crossentropy'
+        #oss = 'categorical_crossentropy'
+        
+        #loss = self.weighted_categorical_crossentropy(np.ones(20)/20)
+        
+        #loss=tf.keras.losses.KLDivergence(reduction="auto", name="kl_divergence")
+        loss=tf.keras.losses.BinaryCrossentropy(from_logits=False, label_smoothing=0,name='binary_crossentropy')
+
+
+        self.model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+        
+    def train(self, name_run, notes, tags):
+        # build generator and discriminator models 
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+            try:
+                # Currently, memory growth needs to be the same across GPUs
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+            except RuntimeError as e:
+                # Memory growth must be set before GPUs have been initialized
+                print(e)
+            
+        # setup logging
+        if self.config['logging_wandb']:
+            # w&b 
+            wandb.init(name=name_run, 
+                   project=self.project_name,
+                   notes=notes, 
+                   tags=tags,
+                   entity='cv-task-2')
+
+            # save usefull config to w&b
+            wandb.config.learning_rate = self.config['train_parameters']['learning_rate']
+            wandb.config.batch_size = self.config['train_parameters']['batch_size']
+            wandb.config.epochs = self.config['train_parameters']['epochs']
+            wandb.config.steps_per_epoch = self.config['train_parameters']['steps_per_epoch']
+            
+            
+        # build model 
+        self.build()
+        #self.model.summary()
+        
+        # set model parts trainable or not
+        if self.config['train_base_model'] == False: 
+            print('freezing base model layers')
+            for layer in self.base_model.layers:
+                layer.trainable = False
+        if self.config['train_head_model'] == False: 
+            print('freezing head model layers')
+            for layer in self.head_model.layers:
+                layer.trainable = False
+        
+        
+        # compile model
+        self.compile_model()
+        
+        if self.config['logging_wandb']:
+            # set save_model true if you want wandb to upload weights once run has finished (takes some time)
+            clbcks = [WandbCallback(save_model=False)]
+        else: 
+            clbcks = []
+
+        
+        # start training 
+        history=self.model.fit(
+                    x = self.dataset.train_generator(batch_size=self.config['train_parameters']['batch_size']),
+                    steps_per_epoch = self.config['train_parameters']['steps_per_epoch'],
+                    epochs=self.config['train_parameters']['epochs'], 
+                    validation_data=self.dataset.validation_generator(batch_size=self.config['train_parameters']['batch_size']),
+                    validation_steps=20, 
+                    callbacks=clbcks
+        )
+        
+        #workers=multiprocessing.cpu_count(),
+        #use_multiprocessing=True,
