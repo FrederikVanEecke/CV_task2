@@ -357,7 +357,7 @@ class Dataset_Segmentation(Dataset_Classification):
 		return image, mask
 	
 
-	def prepare_test_image(self, image, mask=None): 
+	def prepare_test_image(self, image, mask): 
 		"""
 			 Same as prepare_image but without augmentation
 		"""
@@ -365,8 +365,7 @@ class Dataset_Segmentation(Dataset_Classification):
 		# resize manually, when augmentation is turned on a random crop will be done 100% of times.
 		#if not self.config['augmentation'] or h < self.config['input_shape'][0]or w < self.config['input_shape'][1]:
 		image = self.reshape(image)
-		if mask != None:
-			mask=self.reshape(mask)
+		mask=self.reshape(mask)
 		
 		# preprocess 
 		image = self.preprocessor(image)
