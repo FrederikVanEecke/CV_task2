@@ -21,9 +21,9 @@ from albumentations import (
 from data_utils import Dataset_Classification, Dataset_Segmentation
 import sys
 
-sys.path.append('./deeplab')
-from deeplabv3p import Deeplabv3
-from utils import SegModel, get_VOC2012_classes, Jaccard, sparse_accuracy_ignoring_last_label, sparse_crossentropy_ignoring_last_label
+# sys.path.append('./deeplab')
+# from deeplabv3p import Deeplabv3
+# from utils import SegModel, get_VOC2012_classes, Jaccard, sparse_accuracy_ignoring_last_label, sparse_crossentropy_ignoring_last_label
 import keras
 
 ## base classification dataset
@@ -126,7 +126,7 @@ class ClassifactionModel(RandomClassificationModel):
 			if dropout:
 				head_model=tf.keras.layers.Dropout(0.4)(head_model)
 		
-		head_model=keras.layers.Dense(20, activation='softmax')(head_model)
+		head_model=keras.layers.Dense(20, activation=self.config_head['output_activation'])(head_model)
 		#self.config['nbr_classes']
 		self.head_model = head_model
 				  
@@ -151,11 +151,15 @@ class ClassifactionModel(RandomClassificationModel):
 		# metric
 		metrics = [tf.keras.metrics.CategoricalAccuracy(),
 				  tf.keras.metrics.TopKCategoricalAccuracy(k=3, name='top 3 categorical acccuracy'), 
-				  tf.keras.metrics.TopKCategoricalAccuracy(k=5, name='top 5 categorical acccuracy')
+				  tf.keras.metrics.TopKCategoricalAccuracy(k=5, name='top 5 categorical acccuracy'),
+				  tfa.metrics.FBetaScore(num_classes=20, beta=2., average='weighted')
 				  ]
 		
 		# loss
-		loss='categorical_crossentropy'
+		if self.config['train_parameters']['loss'] == 'focal':
+			loss=tfa.losses.SigmoidFocalCrossEntropy(reduction='auto')
+		else:
+			loss='categorical_crossentropy'
 		self.model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 		
 		
