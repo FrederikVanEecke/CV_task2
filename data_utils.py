@@ -448,8 +448,7 @@ class Dataset_Segmentation(Dataset_Classification):
 				mask = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/seg/train_{}.npy'.format(image_id))
 				image, segmask = self.prepare_image(real_image, mask)
 				inputs.append(image)
-				yy = segmask.flatten()
-				targets.append(np.expand_dims(yy, -1).astype('float32'))
+				targets.append(segmask)
 				batchcount += 1
 				if batchcount >= batch_size:
 					X = np.array(inputs)
@@ -477,8 +476,7 @@ class Dataset_Segmentation(Dataset_Classification):
 				mask = np.load('../input/kul-h02a5a-computervision-groupassignment1/train/seg/train_{}.npy'.format(image_id) )
 				image, segmask = self.prepare_test_image(real_image, mask)
 				inputs.append(image)
-				yy = segmask.flatten()
-				targets.append(np.expand_dims(yy, -1).astype('float32'))
+				targets.append(segmask)
 				batchcount += 1
 				if batchcount >= batch_size:
 					X = np.array(inputs)
